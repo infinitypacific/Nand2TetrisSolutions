@@ -1,0 +1,7 @@
+﻿push constant 36
+push constant 45
+pop static 0
+pop static 1
+push static 1
+push static 0
+eq

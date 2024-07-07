@@ -1,0 +1,7 @@
+﻿function Sys.init 1
+push constant 5
+pop local 0
+push local 0
+call Main.Main 1
+label end
+goto end

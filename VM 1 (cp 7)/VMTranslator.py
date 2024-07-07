@@ -53,10 +53,10 @@ class Parser:
 			return
 		
 		if(len(line) > 3):
-			raise Exception("Too many arguments")
+			raise Exception(f"Too many arguments on line {self.line}!")
 			
 		if(len(line) <= 0):
-			raise Exception("Insufficient commands")
+			raise Exception(f"Insufficient commands on line {self.line}!")
 		
 		if(line[0] == "push"):
 			self.commandType = "C_PUSH"
@@ -95,40 +95,48 @@ class Parser:
 			self.arg1 = ""
 			self.arg2 = 0
 		else:
-			raise Exception("Invalid Command")
+			raise Exception(f"Invalid Command on line {self.line}!")
 		
 		if(self.arg2 < 0):
-			raise Exception("Negative integers are not allowed")
+			raise Exception(f"Negative integers are not allowed on line {self.line}!")
 		
 		self.line += 1
 		
 class CodeWriter:
 	def __init__(self, name):
 		self.file = open(name, "w")
-		self.comp = 0 #Count comparisons
-		self.init = False #Check if sys.init exists
-		self.current = "" #current vm file
-		self.func = "" #current function
+		self.comp = 0
+		# v to initialize pointers
 		"""
 		SP,LCL,ARG,THIS,THAT
 		Static: 16
 		Stack: 256
 		Heap: 2048
 		"""
-	
-	def writeInit(self):
 		self.file.write("""@256
 D=A
 @SP
 M=D
-@ARG
-M=D
+""")
+		# Initialization temp
+		self.file.write("""@300
+D=A
 @LCL
 M=D
-@Sys.init
-0;JMP
+@400
+D=A
+@ARG
+M=D
+@3000
+D=A
+@THIS
+M=D
+@3001
+D=A
+@THAT
+M=D
 """)
-	
+		
 	def setFileName(self,fileName):
 		self.file = open(fileName, "w")
 		
@@ -149,7 +157,8 @@ A=M
 D=M
 @SP
 A=M-1
-D=M-D
+A=M
+D=A-D
 @SP
 A=M-1
 M=D
@@ -264,60 +273,66 @@ A=D+A"""
 					self.file.write(f"""@{str(index)}
 D=A
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
+@SP
+M=M+1
 """)
 				else:
 					self.file.write(f"""@SP
-M=M+1
-A=M-1
+A=M
 M={str(index)}
+@SP
+M=M+1
 """)
 			elif segment == "argument":
 				self.file.write(f"""@ARG
 {at}
 D=M
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
+@SP
+M=M+1
 """)
 			elif segment == "local":
 				self.file.write(f"""@LCL
 {at}
 D=M
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
-""")
-			elif segment == "static":
-				#Auto allocate static vars?
-				self.file.write(f"""@{self.current}.{str(index)}
-D=M
 @SP
 M=M+1
-A=M-1
+""")
+			elif segment == "static":
+				self.file.write(f"""@{str(16+index)}
+D=M
+@SP
+A=M
 M=D
+@SP
+M=M+1
 """)
 			elif segment == "this":
 				self.file.write(f"""@THIS
 {at}
 D=M
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
+@SP
+M=M+1
 """)
 			elif segment == "that":
 				self.file.write(f"""@THAT
 {at}
 D=M
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
+@SP
+M=M+1
 """)
 			elif segment == "pointer":
 				if(pointer > 1):
@@ -325,9 +340,10 @@ M=D
 				self.file.write(f"""@{str(3+index)}
 D=M
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
+@SP
+M=M+1
 """)
 			elif segment == "temp":
 				if(index > 7):
@@ -335,9 +351,10 @@ M=D
 				self.file.write(f"""@{str(5+index)}
 D=M
 @SP
-M=M+1
-A=M-1
+A=M
 M=D
+@SP
+M=M+1
 """)
 			else:
 				raise Exception(f"Segment {segment} is invalid")
@@ -388,7 +405,7 @@ M=D
 M=M-1
 A=M
 D=M
-@{self.current}.{str(index)}
+@{str(16+index)}
 M=D
 """)
 			elif segment == "this":
@@ -434,148 +451,6 @@ M=D
 			else:
 				raise Exception(f"Segment {segment} is invalid")
 		
-	def writeLabel(self,label):
-		self.file.write(f"({self.func}${label})\n")
-		
-	def writeGoto(self,label):
-		self.file.write(f"@{self.func}${label}\n0;JMP\n")
-		
-	def writeIf(self,label):
-		self.file.write(f"""@SP
-M=M-1
-A=M
-D=M
-@{self.func}${label}
-D;JNZ
-""")
-	
-	def writeCall(self,functionName,numArgs):
-		# use comp
-		self.file.write(f"""@RET{self.comp}
-D=A
-@SP
-M=M+1
-A=M-1
-M=D
-@LCL
-D=M
-@SP
-M=M+1
-A=M-1
-M=D
-@ARG
-D=M
-@SP
-M=M+1
-A=M-1
-M=D
-@THIS
-D=M
-@SP
-M=M+1
-A=M-1
-M=D
-@THAT
-D=M
-@SP
-M=M+1
-A=M-1
-M=D
-@{5+numArgs}
-D=A
-@SP
-D=M-D
-@ARG
-M=D
-@SP
-D=M
-@LCL
-M=D
-@{functionName}
-0;JMP
-(RET{self.comp})
-""")
-		self.comp += 1
-		
-	def writeFunction(self,functionName,numLocals):
-		self.func = functionName
-
-		if(functionName == "Sys.init"):
-			self.init = True
-		
-		if(numLocals == 0):
-			self.file.write(f"({functionName})\n")
-		elif(numLocals == 1):
-			self.file.write(f"""({functionName})
-@SP
-M=M+1
-A=M-1
-M=0
-""")
-		else:
-			self.file.write(f"""({functionName})
-@{numLocals}
-D=A
-(LOP{self.comp})
-@END{self.comp}
-D;JEQ
-@SP
-M=M+1
-A=M-1
-M=0
-D=D-1
-@LOP{self.comp}
-0;JMP
-(END{self.comp})
-""")
-			self.comp += 1
-			
-	def writeReturn(self):
-		self.func = ""
-		self.file.write(f"""@LCL
-D=M
-@13
-M=D
-@SP
-A=M-1
-D=M
-@ARG
-A=M
-M=D
-D=A+1
-@SP
-M=D
-@13
-M=M-1
-A=M
-D=M
-@THAT
-M=D
-@13
-M=M-1
-A=M
-D=M
-@THIS
-M=D
-@13
-M=M-1
-A=M
-D=M
-@ARG
-M=D
-@13
-M=M-1
-A=M
-D=M
-@LCL
-M=D
-@13
-M=M-1
-A=M
-A=M
-0;JMP
-""")
-		
 	def Close(self):
 		self.file.close()
 		
@@ -604,7 +479,7 @@ while True:
 			
 			for file in files:
 				if file[-3:] == ".vm":
-					filestoparse.append(file)
+					filestoparse.append(name + "/" + file)
 					
 			if len(filestoparse) == 0:
 				raise Exception("No VM files in directory")
@@ -619,19 +494,12 @@ while True:
 		print(f"Error: {name} is not a relative directory or vm file")
 		continue
 	
-	
-	cw.writeInit()
 	# Implement parser
 	# Parser finish?
 	# Work on CodeWriter
 	# Handle errors
 	for i in range(0,len(filestoparse)):
-		if(dir):
-			p = Parser(name + "/" + filestoparse[i])
-		else:
-			p = Parser(filestoparse[i])
-			
-		cw.current = filestoparse[i][:-3]
+		p = Parser(filestoparse[i])
 		while p.hasMoreCommands:
 			try:
 				p.advance()
@@ -644,36 +512,17 @@ while True:
 					cw.WritePushPop(p.commandType,p.arg1,p.arg2)
 				elif(p.commandType == "C_ARITHMETIC"):
 					cw.writeArithmetic(p.file[p.line-1])
-				elif(p.commandType == "C_LABEL"):
-					cw.writeLabel(p.arg1)
-				elif(p.commandType == "C_FUNCTION"):
-					cw.writeFunction(p.arg1,p.arg2)
-				elif(p.commandType == "C_GOTO"):
-					cw.writeGoto(p.arg1)
-				elif(p.commandType == "C_IF"):
-					cw.writeIf(p.arg1)
-				elif(p.commandType == "C_CALL"):
-					cw.writeCall(p.arg1,p.arg2)
-				elif(p.commandType == "C_RETURN"):
-					cw.writeReturn()
 				else:
-					raise Exception(f"Command not supported")
+					raise Exception("Command not supported")
 			except Exception as e:
-				a = input("Error: " + str(e) + " on line " + str(p.line-1) + " on file " + filestoparse[i] + "\nContinue (y/n)>")
+				a = input("Error: " + str(e) + "\nContinue (y/n)>")
 				if a == "y":
 					error = 1
 				else:
 					error = 2
 					break
 			
-	
-	
-	if(cw.init == False):
-		print("Error: Sys.init function not found")
-		error = 2
-		
 	cw.Close()
-	
 	if(error == 0):
 		print("Compilation successful!")
 	elif(error == 1):

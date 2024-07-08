@@ -1,4 +1,4 @@
-﻿/** The list is like an array but you can append to it, append array or lists to the end. This works by deleting original Array and making a new one.*/
+﻿/** The list is like an array but you can append to it, append array | lists to the end. This works by deleting original Array & making a new one.*/
 class List {
 	field Array l;
 	field int length;
@@ -15,7 +15,7 @@ class List {
 		return;
 	}
 	
-	// if int doesn work for obj and primitives, use an array to do a makeshift "auto" format
+	// if int doesn work for obj & primitives, use an array to do a makeshift "auto" format
 	method void set(int i, int v) {
 		let l[i] = v;
 		return;
@@ -76,7 +76,7 @@ class List {
 		let n = Array.new(nlen);
 		let i = 0;
 		
-		while ((i < nlen) and (i < length)) {
+		while ((i < nlen) & (i < length)) {
 			let n[i] = l[i];
 			let i = i + 1;
 		}

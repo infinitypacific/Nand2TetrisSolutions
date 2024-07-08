@@ -1,35 +1,40 @@
 class Main {
 	function void Main() {
-		var Array Posts;
+		var PostDB Posts;
+		var boolean shows,showh;
+		let Posts = PostDB.new(0,2,20,10);
+		let shows = true;
+		let showh = true;
 		
-		var int proy,prox;
-		let proy = 23;
-		let prox = 0;
-		
-		let Posts = Array.new(11);
-		var int i, s;
-		let i = 0;
-		var char a;
 		while (true) {
-			do drawUI();
+			if (showh) {
+				do drawUI();
+			}
+			if (shows) {
+				do Output.moveCursor(22, 0);
+				do Posts.printStats();
+			}
+			
+			do Posts.drawPosts();
+			
+			var char a;
+			var int err;
+			let err = 0;
 			let a = readChar();
 			if (a = 49) {
 				// create new and set
 				var String ptitle, pbody;
-				do Output.moveCursor(proy, prox);
-				let title = Keyboard.readLine("Enter post title: ");
-				do Output.moveCursor(proy, prox);
-				let body = Keyboard.readLine("Enter post body: ");
+				do Output.moveCursor(22, 0);
+				let ptitle = Keyboard.readLine("Enter post title: ");
+				do Output.moveCursor(22, 0);
+				let pbody = Keyboard.readLine("Enter post body: ");
 				
-				let Posts[i] = Post.new();
-				do Posts[i].display();
-				do underLine((i * 2) + 4);
-				let i = i + 1;
+				do Posts.add(ptitle,pbody);
 			}
 			else {
 				if (a = 50) {
 					// Remove top post
-					let i = i - 1;
+					let err = Posts.rem();
 				}
 				else {
 					if (a = 51){
@@ -47,6 +52,19 @@ class Main {
 					}
 				}
 			}
+			
+			do Output.moveCursor(22, 0);
+			if (err = 0) {
+				do Output.printString("Success");
+			}
+			else {
+				if (err = 1) {
+					do Output.printString("Exception");
+				}
+				else {
+					do Output.printString("Error");
+				}
+			}
 		}
 		return;
 	}
@@ -55,7 +73,8 @@ class Main {
 		do Screen.setColor(false);
 		do Output.moveCursor(0,28);
 		do Output.printString("Queue App");
-		do Output.printString("1:Add 2:Remove 3:Set 4:Delete 5:Move 6:Switch 7:Up 8:Down")
+		do Output.printLn();
+		do Output.printString("0:Tog 1:Add 2:Rem 3:Set 4:Del 5:Ins 6:Mov 7:Swi 8:Up 9:Dwn")
 		do Output.printLn();
 		do PostDB.underline(1);
 		return;

@@ -68,13 +68,13 @@ class PostDB {
 	}
 	
 	method int set(int i, String tit, String bod) {
+		if ((i + 1) > totalLength) {
+			Return 2;
+		}
 		var Array n;
 		let n = Posts.get(i);
 		let n[0] = tit;
 		let n[1] = bod;
-		if ((i + 1) > totalLength) {
-			Return 2;
-		}
 		Return 0;
 	}
 	
@@ -85,7 +85,7 @@ class PostDB {
 		do Posts.get(i).dispose();
 		var int ii;
 		let ii = i + 1;
-		while (ii < listLen) {
+		while (ii < totalLength) {
 			do Posts.set(ii - 1, Posts.get(ii));
 			let ii = ii + 1;
 		}
@@ -126,16 +126,16 @@ class PostDB {
 			// Store op, Push all posts from np to op-1 down
 			let i = np;
 			while (i < op) {
-				do Posts.set(i - 1,Posts.get(i));
+				do Posts.set(i + 1,Posts.get(i));
 				let i = i + 1;
 			}
 			
 		}
 		else {
-			// Store op, Push all posts from op-1 to np up
-			let i = op - 1;
+			// Store op, Push all posts from op+1 to np up
+			let i = op + 1;
 			while ((i - 1) < np) {
-				do Posts.set(i + 1,Posts.get(i));
+				do Posts.set(i - 1,Posts.get(i));
 				let i = i + 1;
 			}
 		}
@@ -155,6 +155,7 @@ class PostDB {
 		let l = voffset;
 		let i = cursor;
 		let target = (cursor + pageLength) - 1;
+		//Clamp target
 		if ((target + 1) > totalLength) {
 			let target = totalLength - 1;
 		}
@@ -274,6 +275,7 @@ class PostDB {
 		let opost = Array.new(pageLength);
 		let i = cursor;
 		let target = pageLength + cursor;
+		//keep opost always pagelength
 		let ni = 0;
 		if (target > (totalLength - 1)) {
 			let target = totalLength - 1;

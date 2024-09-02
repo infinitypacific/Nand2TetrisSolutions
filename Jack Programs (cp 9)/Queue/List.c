@@ -1,4 +1,4 @@
-﻿/** The list is like an array but you can append to it, append array | lists to the end. This works by deleting original Array & making a new one.*/
+/** The list is like an array but you can append to it, append array | lists to the end. This works by deleting original Array & making a new one.*/
 class List {
 	field Array l;
 	field int length;

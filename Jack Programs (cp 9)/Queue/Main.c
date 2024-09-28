@@ -1,4 +1,13 @@
-﻿class Main {
+//Queue app
+//Programmed by Lucas Lux aka Pacifiky
+//23 total lines
+//58 total chars
+//ToDo
+//!Menu
+//!Toggle ui
+//!Replace yn with numselect
+//!Add exit to numselect p/p
+class Main {
 	function void Main() {
 		var PostDB Posts;
 		var boolean shows,showh;
@@ -27,15 +36,46 @@
 				do Output.moveCursor(22, 0);
 				let sel = Keyboard.readInt("Toggle: 0:Exit 1:Header 2:Stats 3:Prefix");
 				if(sel = 1){
-					let showh = false;
+					let showh = !showh;
+					if(showh){
+						Posts.setOffset(0,2);
+						Posts.setPage(10);
+					}
+					else{
+						Posts.setOffset(0,0);
+						Posts.setPage(11);
+					}
 				}
 				else {
 					if(sel = 2){
-						let shows = false;
+						let shows = !shows;
 					}
 					else {
 						if(sel = 3){
-							
+							var int presel;
+							do Output.moveCursor(22, 0);
+							let presel = Keyboard.readInt("Prefix: 0:Exit 1:Null 2:Numeral 3:Bullet 4:Custom");
+							if(presel = 1 | presel = 2 | presel = 3){
+								err = Posts.setPrefix(presel-1);
+							}
+							else{
+								if(presel = 4){
+									var char cb;
+									do Output.moveCursor(22, 0);
+									do Output.printString("Custom bullet (Enter char): ");
+									let cb = Keyboard.readChar();
+									do Posts.setBullet(cb);
+								}
+								else{
+									if(!(presel = 0)){
+										err = 1;
+									}
+								}
+							}
+						} else {
+							if(!(sel = 0)){
+								err = 1;
+							}
 						}
 					}
 				}
@@ -111,18 +151,24 @@
 											let err = Posts.swi(ind1,ind2);
 										}
 										else {
-											// replace up nd dwn with a number select?
 											if (a = 8) {
 												//Up
 												var char sel;
 												do Output.moveCursor(22, 0);
-												do Output.printString("UpPage? y/n: ");
+												do Output.printString("Up 0:Exit 1:Post 2:Page");
 												let sel = Keyboard.readChar();
-												if(sel = "y){
+												if(sel = "2){
 													let err = Posts.up(true);
 												}
 												else {
-													let err = Posts.up(false);
+													if(sel = "1){
+														let err = Posts.up(false);
+													}
+													else {
+														if(!(sel = "0)){
+															let err = 1;
+														}
+													}
 												}
 											}
 											else {
@@ -130,13 +176,20 @@
 													//Dwn
 													var char sel;
 													do Output.moveCursor(22, 0);
-													do Output.printString("DwnPage? y/n: ");
+													do Output.printString("Dwn 0:Exit 1:Post 2:Page");
 													let sel = Keyboard.readChar();
-													if(sel = "y){
+													if(sel = "2){
 														let err = Posts.dwn(true);
 													}
 													else {
-														let err = Posts.dwn(false);
+														if(sel = "1){
+															let err = Posts.dwn(false);
+														}
+														else {
+															if(!(sel = "0)){
+																let err = 1;
+															}
+														}
 													}
 												}
 												else {
@@ -152,7 +205,6 @@
 					}
 				}
 			}
-			
 			do Output.moveCursor(22, 0);
 			if (err = 0) {
 				do Output.printString("Success");

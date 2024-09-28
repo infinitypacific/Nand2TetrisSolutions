@@ -1,4 +1,4 @@
-﻿/** Error codes:
+/** Error codes:
 0: Success
 1: Warning
 2: Fatal
@@ -17,7 +17,7 @@ class PostDB {
 	field int listLen;
 	field char bullet;
 	
-	constructor PostDB new(int hoff, int voff,int len, int pglen) {
+	constructor PostDB new(int hoff,int voff,int len,int pglen) {
 		let Posts = List.new(len);
 		let voffset = voff;
 		let hoffset = hoff;

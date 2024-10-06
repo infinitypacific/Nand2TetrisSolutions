@@ -1,0 +1,7 @@
+﻿class Main {
+	field int fitest1,fitest2;
+	var boolean bo_var1;
+	let bo_var1 = null;
+	let bo_var1 = true;
+	let bo_var1 = false;
+}

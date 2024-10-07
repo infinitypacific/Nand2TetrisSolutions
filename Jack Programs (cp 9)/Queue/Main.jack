@@ -8,6 +8,7 @@
 //!Replace yn with numselect
 //!Add exit to numselect p/p
 //!Corrected "char" definitions
+/!/Again correct
 class Main {
 	function void Main() {
 		var PostDB Posts;
@@ -61,7 +62,7 @@ class Main {
 							}
 							else{
 								if(presel = 4){
-									var int cb;
+									var char cb;
 									do Output.moveCursor(22, 0);
 									do Output.printString("Custom bullet (Enter char): ");
 									let cb = Keyboard.readChar();
@@ -154,7 +155,7 @@ class Main {
 										else {
 											if (a = 8) {
 												//Up
-												var int sel;
+												var char sel;
 												do Output.moveCursor(22, 0);
 												do Output.printString("Up 0:Exit 1:Post 2:Page");
 												let sel = Keyboard.readChar();
@@ -176,7 +177,7 @@ class Main {
 											else {
 												if (a = 9) {
 													//Dwn
-													var int sel;
+													var char sel;
 													do Output.moveCursor(22, 0);
 													do Output.printString("Dwn 0:Exit 1:Post 2:Page");
 													let sel = Keyboard.readChar();

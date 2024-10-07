@@ -15,7 +15,7 @@ class PostDB {
 	field int cursor;
 	field int prefix;
 	field int listLen;
-	field int bullet;
+	field char bullet;
 	
 	constructor PostDB new(int hoff,int voff,int len,int pglen) {
 		let Posts = List.new(len);
@@ -231,7 +231,7 @@ class PostDB {
 		Return 0;
 	}
 	
-	method void setBullet(int nbul) {
+	method void setBullet(char nbul) {
 		let bullet = nbul;
 		return;
 	}

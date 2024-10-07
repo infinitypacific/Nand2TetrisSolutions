@@ -12,7 +12,7 @@ class CompilationEngine {
 			if(!ofilein.is_open()){throw out_of_range("Output file inaccessable!");};
 		};
 		void CompileClass(){
-			ofile << "<class>" << std::endl;
+			ofile << "<tokens>" << std::endl;
 			while(Tokenizer.hasMoreTokens){
 				Tokenizer.advance();
 				ofile << "<" << tokenTypeTags[static_cast<int>(Tokenizer.tokenType)] << ">" << std::endl;
@@ -35,7 +35,7 @@ class CompilationEngine {
 				}
 				ofile << "</" << tokenTypeTags[static_cast<int>(Tokenizer.tokenType)] << ">" << std::endl;
 			}
-			ofile << "</class>" << std::endl;
+			ofile << "</tokens>" << std::endl;
 			ifile.close();
 			ofile.close();
 			cout << "Compilation Success!" << endl;

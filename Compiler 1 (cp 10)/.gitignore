@@ -36,5 +36,7 @@
 *.bc_exe
 
 # Project
-Queue/*
+Queue/
 *.xml
+Square/
+ArrayTest/

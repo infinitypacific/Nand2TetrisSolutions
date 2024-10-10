@@ -158,6 +158,8 @@ class JackTokenizer {
 				case ' ':
 				case '\n':
 				case '\t':
+				case '\r':
+					//Whoever invented CRLF should die in a fire
 					return true;
 					break;
 				default:

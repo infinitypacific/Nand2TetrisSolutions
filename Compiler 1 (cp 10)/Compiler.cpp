@@ -16,12 +16,11 @@ class JackAnalyzer {
 	public:
 		JackAnalyzer(string file){
 			//Check if file is directory and iterate to create tokenizers
-			cout << file.length() << endl;
 			try{
 				if(file.length()>5 && file.substr(file.length()-5,5) == ".jack"){
 					//Initialize a stream for the file
 					files.push_back(file);
-				} else if(file.find(".") == -1){
+				} else if(file.find("/") != -1 || file.find(".") == -1){
 					struct stat temp;
 					char* dir = &file[0];
 					if(stat(dir,&temp) != 0){
@@ -31,7 +30,6 @@ class JackAnalyzer {
 					DIR *folder = opendir(dir);
 					
 					if(folder==nullptr){
-						//cerr << "Folder open error!" << endl;
 						throw invalid_argument("Folder open error!");
 					}
 					
@@ -50,39 +48,23 @@ class JackAnalyzer {
 				cout << "Err with if!" << endl;
 			}
 			//Initialize stream for filewriting xml
-			cout << to_string(files.size()) << endl;
+			cout << "Files: " << to_string(files.size()) << endl;
 			for(const string foldfil : files){
 				cout << "Init " << foldfil << endl;
 				ifstream foldfilin(foldfil);
-				if(isUTF(foldfilin)){cout<<"Processing format UTF-8"<<endl;}else{cout<<"Processing format ASCII"<<endl;};
-				ofstream foldfilout(foldfil.substr(0,foldfil.length()-5) + ".xml");
-				cout << foldfil.substr(0,foldfil.length()-5) + "T.xml" << endl;
-				JackTokenizer Tokeny(foldfilin);
-				CompilationEngine Compiley(foldfilin,foldfilout,Tokeny);
-				/*
-				while(Tokeny.hasMoreTokens){
-					Tokeny.advance();
-					cout << tokenTypeEnumDeb[static_cast<int>(Tokeny.tokenType)] << endl;
-					switch(Tokeny.tokenType){
-						case tokenTypeEnum::KEYWORD:
-							cout << "Keyword: " << keyWordEnumDeb[static_cast<int>(Tokeny.keyWord)] << endl;
-							break;
-						case tokenTypeEnum::IDENTIFIER:
-							cout << "ID: " << Tokeny.identifier << endl;
-							break;
-						case tokenTypeEnum::SYMBOL:
-							cout << "Symbol: " << Tokeny.symbol << endl;
-							break;
-						case tokenTypeEnum::STRING_CONST:
-							cout << "SCon: " << Tokeny.stringVal << endl;
-							break;
-						case tokenTypeEnum::INT_CONST:
-							cout << "ICon: " << Tokeny.intVal << endl;
-							break;
-					}
-				};
-				*/
-				Compiley.CompileClass();
+				if(!(foldfilin.is_open())){
+					foldfilin.close();
+					cerr << "Input file inaccessable!" << endl;
+				}else{
+					if(isUTF(foldfilin)){cout<<"Processing format UTF-8"<<endl;}else{cout<<"Processing format ASCII"<<endl;};
+					ofstream foldfilout(foldfil.substr(0,foldfil.length()-5) + ".xml");
+					cout << "Init " << foldfil.substr(0,foldfil.length()-5) + ".xml" << endl;
+					JackTokenizer Tokeny(foldfilin);
+					CompilationEngine Compiley(foldfilin,foldfilout,Tokeny);
+					Compiley.CompileClass();
+					foldfilin.close();
+					foldfilout.close();
+				}
 			}
 			
 		}
@@ -97,9 +79,9 @@ class JackAnalyzer {
 
 int main(int argc, char* argv[]) {
 	if(argc<2){
-		cerr << "Insufficient arguments!";
+		cerr << "Insufficient arguments!" << endl;
 	} else if(argc>2){
-	  	cerr << "Too many arguments!";
+		cerr << "Too many arguments!" << endl;
 	} else {
 		try{
 			JackAnalyzer(string(argv[1]));

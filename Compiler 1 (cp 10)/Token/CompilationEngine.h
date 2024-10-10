@@ -24,7 +24,20 @@ class CompilationEngine {
 						ofile << Tokenizer.identifier << std::endl;
 						break;
 					case tokenTypeEnum::SYMBOL:
-						ofile << Tokenizer.symbol << std::endl;
+						switch(Tokenizer.symbol){
+							case '&':
+								ofile << "&amp;" << std::endl;
+								break;
+							case '<':
+								ofile << "&lt;" << std::endl;
+								break;
+							case '>':
+								ofile << "&gt;" << std::endl;
+								break;
+							default:
+								ofile << Tokenizer.symbol << std::endl;
+								break;
+						}
 						break;
 					case tokenTypeEnum::STRING_CONST:
 						ofile << Tokenizer.stringVal << std::endl;

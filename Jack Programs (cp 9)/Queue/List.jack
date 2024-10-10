@@ -1,4 +1,4 @@
-/** The list is like an array but you can append to it, append array | lists to the end. This works by deleting original Array & making a new one.*/
+﻿/** The list is like an array but you can append to it, append array | lists to the end. This works by deleting original Array & making a new one.*/
 class List {
 	field Array l;
 	field int length;
@@ -6,7 +6,7 @@ class List {
 	constructor List new(int len) {
 		let l = Array.new(len);
 		let length = len;
-		Return this;
+		return this;
 	}
 	
 	method void dispose() {
@@ -22,11 +22,11 @@ class List {
 	}
 	
 	method int get(int i) {
-		Return l[i];
+		return l[i];
 	}
 	
 	method int getLen() {
-		Return length;
+		return length;
 	}
 	
 	method void append(int v) {
@@ -53,7 +53,7 @@ class List {
 		let io = 0;
 		let iv = length;
 		while (io < length) {
-			let n[io] = l[io]
+			let n[io] = l[io];
 			let io = io + 1;
 		}
 		while (iv < alen) {
@@ -68,11 +68,11 @@ class List {
 	}
 	
 	method void setLen(int nlen) {
+		var Array n;
+		var int i;
 		if (nlen = length) {
 			return;		
 		}
-		var Array n;
-		var int i;
 		let n = Array.new(nlen);
 		let i = 0;
 		

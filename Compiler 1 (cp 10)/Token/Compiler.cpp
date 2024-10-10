@@ -21,7 +21,7 @@ class JackAnalyzer {
 				if(file.length()>5 && file.substr(file.length()-5,5) == ".jack"){
 					//Initialize a stream for the file
 					files.push_back(file);
-				} else if(file.find(".") == -1){
+				} else if(file.find("/") != -1 || file.find(".") == -1){
 					struct stat temp;
 					char* dir = &file[0];
 					if(stat(dir,&temp) != 0){
@@ -55,7 +55,7 @@ class JackAnalyzer {
 				cout << "Init " << foldfil << endl;
 				ifstream foldfilin(foldfil);
 				if(isUTF(foldfilin)){cout<<"Processing format UTF-8"<<endl;}else{cout<<"Processing format ASCII"<<endl;};
-				ofstream foldfilout(foldfil.substr(0,foldfil.length()-5) + ".xml");
+				ofstream foldfilout(foldfil.substr(0,foldfil.length()-5) + "T.xml");
 				cout << foldfil.substr(0,foldfil.length()-5) + "T.xml" << endl;
 				JackTokenizer Tokeny(foldfilin);
 				CompilationEngine Compiley(foldfilin,foldfilout,Tokeny);

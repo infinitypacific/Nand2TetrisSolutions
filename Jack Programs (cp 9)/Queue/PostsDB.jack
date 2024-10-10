@@ -28,7 +28,7 @@ class PostDB {
 		let listLen = len;
 		// *=42
 		let bullet = 42;
-		Return this;
+		return this;
 	}
 	
 	method void swi(int a, int b) {
@@ -54,52 +54,56 @@ class PostDB {
 	}
 	
 	method int rem() {
-		if (totalLength = 0) {
-			Return 2;
-		}
 		var int i;
-		do Posts.get(0).dispose();
+		var Array buf;
+		if (totalLength = 0) {
+			return 2;
+		}
+		let buf = Posts.get(0);
+		do buf.dispose();
 		let i = 1;
 		while (i < listLen) {
 			do Posts.set(i - 1, Posts.get(i));
 			let i = i + 1;
 		}
 		let totalLength = totalLength - 1;
-		Return 0;
+		return 0;
 	}
 	
 	method int set(int i, String tit, String bod) {
-		if ((i + 1) > totalLength) {
-			Return 2;
-		}
 		var Array n;
+		if ((i + 1) > totalLength) {
+			return 2;
+		}
 		let n = Posts.get(i);
 		let n[0] = tit;
 		let n[1] = bod;
-		Return 0;
+		return 0;
 	}
 	
 	method int del(int i) {
-		if ((i + 1) > totalLength) {
-			Return 2;
-		}
-		do Posts.get(i).dispose();
 		var int ii;
+		var Array buf;
+		if ((i + 1) > totalLength) {
+			return 2;
+		}
+		let buf = Posts.get(i);
+		do buf.dispose();
 		let ii = i + 1;
 		while (ii < totalLength) {
 			do Posts.set(ii - 1, Posts.get(ii));
 			let ii = ii + 1;
 		}
 		let totalLength = totalLength - 1;
-		Return 0;
+		return 0;
 	}
 	
 	method int ins(int i, String tit, String bod) {
-		if ((i + 1) > totalLength) {
-			Return 2;
-		}
 		var Array n;
 		var int ii;
+		if ((i + 1) > totalLength) {
+			return 2;
+		}
 		let n = Array.new(2);
 		let n[0] = tit;
 		let n[1] = bod;
@@ -114,14 +118,14 @@ class PostDB {
 		}
 		do Posts.set(i,n);
 		let totalLength = totalLength + 1;
-		Return 0;
+		return 0;
 	}
 	
 	method int mov(int op, int np) {
-		if ((op = np) | ((op + 1) > totalLength) | ((np + 1) > totalLength)) {
-			Return 2;
-		}
 		var int opv,i;
+		if ((op = np) | ((op + 1) > totalLength) | ((np + 1) > totalLength)) {
+			return 2;
+		}
 		let opv = Posts.get(op);
 		if (op > np) {
 			// Store op, Push all posts from np to op-1 down
@@ -141,18 +145,19 @@ class PostDB {
 			}
 		}
 		do Posts.set(np,opv);
-		Return 0;
+		return 0;
 	}
 	
 	function void underLine(int l) {
 		var int rl;
 		let rl = ((l + 1) * 11) - 1;
-		do Screen.drawLine((hoffset * 8),rl,512,rl;
+		do Screen.drawLine((hoffset * 8),rl,512,rl);
 		return;
 	}
 	
 	method void drawPosts() {
 		var int i, target, l;
+		var Array info;
 		let l = voffset;
 		let i = cursor;
 		let target = (cursor + pageLength) - 1;
@@ -161,7 +166,6 @@ class PostDB {
 			let target = totalLength - 1;
 		}
 		while (i < target) {
-			var Array info;
 			let info = Posts.get(i);
 			let i = i + 1;
 			do Output.moveCursor(l,hoffset);
@@ -201,7 +205,7 @@ class PostDB {
 	
 	method int up(boolean page) {
 		if (cursor = 0) {
-			Return 2;
+			return 2;
 		}
 		if (page) {
 			let cursor = cursor - pageLength;
@@ -212,12 +216,12 @@ class PostDB {
 		else {
 			let cursor = cursor - 1;
 		}
-		Return 0;
+		return 0;
 	} 
 	
 	method int dwn(boolean page) {
 		if (cursor = (totalLength - 1)) {
-			Return 2;
+			return 2;
 		}
 		if (page) {
 			let cursor = cursor + pageLength;
@@ -228,7 +232,7 @@ class PostDB {
 		else {
 			let cursor = cursor + 1;
 		}
-		Return 0;
+		return 0;
 	}
 	
 	method void setBullet(char nbul) {
@@ -238,13 +242,13 @@ class PostDB {
 	
 	method int setPrefix(int o) {
 		if ((o > 2) | (o < 0)) {
-			Return 2;
+			return 2;
 		}
 		let prefix = o;
-		Return 0;
+		return 0;
 	}
 	
-	method void setOffset(hoff,voff) {
+	method void setOffset(int hoff,int voff) {
 		let hoffset = hoff;
 		let voffset = voff;
 		return;
@@ -257,17 +261,17 @@ class PostDB {
 	
 	method int setCursor(int n) {
 		if((n < 0) | (n > (totalLength - 1))) {
-			Return 2;
+			return 2;
 		}
 		let cursor = n;
-		Return 0;
+		return 0;
 	}
 	
 	method int getPost(int i) {
 		if((i < 0) | (i > (totalLength - 1))) {
-			Return 2;
+			return 2;
 		}
-		Return Posts.get(i);
+		return Posts.get(i);
 	}
 	
 	method Array getPosts() {
@@ -293,15 +297,15 @@ class PostDB {
 			let ni = ni + 1;
 		}
 		
-		Return opost;
+		return opost;
 	}
 	
 	method Array getStats() {
 		var Array out;
 		let out = Array.new(3);
 		let out[0] = totalLength;
-		let out[1] = (totalLength /  pageLength) + 1
+		let out[1] = (totalLength /  pageLength) + 1;
 		let out[2] = cursor + 1;
-		Return out;
+		return out;
 	}
 }

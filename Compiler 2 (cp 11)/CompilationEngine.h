@@ -27,7 +27,7 @@ class CompilationEngine {
 					Tokenizer.advance();
 					switch(Tokenizer.tokenType){
 						case tokenTypeEnum::SYMBOL:
-							if(Tokenizer.symbol == '}'){this->commitToken();inClass=false;break;}else{this->syntaxErr("Invalid ClassBody!","Floating symbol: "+Tokenizer.symbol);};
+							if(Tokenizer.symbol == '}'){inClass=false;break;}else{this->syntaxErr("Invalid ClassBody!","Floating symbol: "+Tokenizer.symbol);};
 						case tokenTypeEnum::IDENTIFIER:
 							this->syntaxErr("Invalid ClassBody!","Floating identifier: " + Tokenizer.identifier);
 						case tokenTypeEnum::INT_CONST:
@@ -122,24 +122,18 @@ class CompilationEngine {
 		};
 		void CompileSubroutine(){
 			Tabler.startSubroutine();
-			if(Tokenizer.tokenType != tokenTypeEnum::KEYWORD){this->syntaxErr("Invalid subroutineDec!","Called without keyword!");}};
-			keyWordEnum subType = Tokenizer.keyWord;
+			if(Tokenizer.tokenType != tokenTypeEnum::KEYWORD){this->debugErr("Invalid subroutineDec!","Called without keyword!");}};
+			subType = Tokenizer.keyWord;
 			switch(subType){
 				case keyWordEnum::METHOD:
-					
-					break;
 				case keyWordEnum::FUNCTION:
-					
-					break;
 				case keyWordEnum::CONSTRUCTOR:
-					
 					break;
 				default:
 					this->syntaxErr("Invalid subroutineDec!","Called without def keyword!");
 					break;
 			}
 			Tokenizer.advance();
-			std::string subRetType;
 			switch(Tokenizer.tokenType){
 				case tokenTypeEnum::KEYWORD:
 					if(this->isTypeKeyword(Tokenizer.keyWord) || Tokenizer.keyWord == keyWordEnum::VOID){
@@ -154,7 +148,7 @@ class CompilationEngine {
 				default:
 					this->syntaxErr("Invalid subroutineDec!","subroutineDec needs an type!");
 					break;
-			}
+			};
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::IDENTIFIER)){this->syntaxErr("Invalid subroutineDec!","subroutineDec needs an identifier!");};
 			std::string subIdn = Tokenizer.identifier;
@@ -164,7 +158,6 @@ class CompilationEngine {
 			this->compileParameterList();
 			//Parameter list is csv. if nexttok != ',' || identifier || type, stop
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid subroutineDec!","subroutineDec missing parameterList close paren!");};
-			this->commitToken();
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid subroutineBody!","subroutineBody missing open curly bracket!");};
 			//Compile vardecs
@@ -175,7 +168,21 @@ class CompilationEngine {
 				Tokenizer.advance();
 				lclAmt++;
 			}
+			//Most services handeled by jcakstd. Sys.init is one
+			//subName = this->className+'.'+subIdn;
 			Writer.writeFunction(this->className+'.'+subIdn,lclAmt);
+			switch(subType){
+				case keyWordEnum::METHOD:
+					Writer.writePush(segmentEnum::ARG,0);
+					Writer.writePop(segmentEnum::POINTER,0);
+					break;
+				case keyWordEnum::CONSTRUCTOR:
+					Writer.writePush(segmentEnum::CONST,Tabler.varCount(varType::FIELD));
+					Writer.writeCall("Memory.alloc");
+					Writer.writePop(segmentEnum::POINTER,0);
+					break;
+			};
+			//labels are handled auto (see 8.6)
 			this->compileStatements();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid subroutineBody!","subroutineBody missing close curly bracket!");};
 		};
@@ -332,6 +339,9 @@ class CompilationEngine {
 			if(Tokenizer.tokenType != tokenTypeEnum::SYMBOL){this->syntaxErr("Invalid Do!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			switch(Tokenizer.symbol){
 				case '.':
+					std::string callerType = Tabler.TypeOf(funcName);
+					if(this->isPrimitive(callerType)){this->symbolErr("Invalid method call!",funcName+" is a Jack Primitive!");}else if(callerType != ""){Writer.writePush(this->varToSeg(Tabler.KindOf(funcName)),Tabler.IndexOf(funcName));}
+					//to be corrected
 					funcName += '.';
 					Tokenizer.advance();
 					if(!(Tokenizer.tokenType == tokenTypeEnum::IDENTIFIER)){this->syntaxErr("Invalid Do!","Missing identifier!");};
@@ -352,25 +362,35 @@ class CompilationEngine {
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ';')){this->syntaxErr("Invalid Do!","Missing semicolon; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Writer.writeCall(funcName,numArg);
+			Writer.writePop(segmentEnum::TEMP,0);
 			Tokenizer.advance();
 		};
 		void compileLet(){
-			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::LET)){this->syntaxErr("Invalid Let!","Called without LET!");};
+			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::LET)){this->debugErr("Invalid Let!","Called without LET!");};
 			short unsigned outInd;
 			varType outVarType;
+			std::string outType;
+			bool isClassName = true;
+			bool hasIndex = false;
+			//bool isField = false;
+			segmentEnum outSeg;
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::IDENTIFIER)){this->syntaxErr("Invalid Let!","Missing identifier!");};
+			outType = Tabler.TypeOf(Tokenizer.identifier);
+			//:mar:cur
+			if(outType == ""){this->symbolErr("Invalid Let!","Variable "+Tokenizer.identifier+" is undefined!");}else if(this->isPrimitive(outType)){isClassName = false;}
 			outInd = Tabler.IndexOf(Tokenizer.identifier);
 			outVarType = Tabler.KindOf(Tokenizer.identifier);
+			outSeg = this->varToSeg(outVarType);
 			Tokenizer.advance();
 			switch(Tokenizer.tokenType){
 				case tokenTypeEnum::SYMBOL:
 					switch(Tokenizer.symbol){
 						case '[':
+							hasIndex = true;
 							Tokenizer.advance();
 							this->CompileExpression();
 							if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ']')){this->syntaxErr("Invalid Let!","Missing close bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-							this->commitToken();
 							Tokenizer.advance();
 							if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '=')){this->syntaxErr("Invalid Let!","Missing equal; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 						case '=':
@@ -386,151 +406,197 @@ class CompilationEngine {
 				
 			}
 			Tokenizer.advance();
+			if(isClassName){
+				Writer.writePush(outSeg,outInd);
+				if(hasIndex){Writer.WriteArithmetic(commandEnum::ADD);}
+				Writer.writePop(segmentEnum::POINTER,1);
+			}
 			this->CompileExpression();
 			//this will leave res on stack
-			
+			if(isClassName){
+				Writer.writePop(segmentEnum::THAT,0);
+			}else{
+				Writer.writePop(outSeg,outInd);
+			}
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ';')){this->syntaxErr("Invalid Let!","Missing semicolon; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Tokenizer.advance();
 		};
 		void compileWhile(){
-			ofile << "<whileStatement>" << std::endl;
-			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::WHILE)){this->syntaxErr("Invalid While!","Called without WHILE!");};
-			this->commitToken();
+			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::WHILE)){this->debugErr("Invalid While!","Called without WHILE!");};
+			Writer.WriteLabel("startwhile"+to_string(this->whilecount));
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid While!","Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
 			Tokenizer.advance();
 			this->CompileExpression();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid While!","Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
+			Writer.WriteArithmetic(commandEnum::NOT);
+			Writer.WriteIf("endwhile"+to_string(this->whilecount));
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid While!","Missing open curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
 			Tokenizer.advance();
 			this->compileStatements();
+			Writer.WriteGoto("startwhile"+to_string(this->whilecount));
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid While!","Missing close curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
+			Writer.WriteLabel("endwhile"+to_string(this->whilecount));
+			this->whilecount++;
 			Tokenizer.advance();
-			ofile << "</whileStatement>" << std::endl;
 		};
 		void compileReturn(){
-			ofile << "<returnStatement>" << std::endl;
-			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::RETURN)){this->syntaxErr("Invalid Return!","Called without RETURN!");};
-			this->commitToken();
+			//mar:cur
+			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::RETURN)){this->debugErr("Invalid Return!","Called without RETURN!");};
 			Tokenizer.advance();
-			/*
-			switch(Tokenizer.tokenType){
-				case tokenTypeEnum::SYMBOL:
-					switch(Tokenizer.symbol){
-						case '':
-							
-							
-						default:
-							
-							
-					}
-					break;
-				default:
-					this->CompileExpression();
-					break;
-			}
-			*/
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ';')){
 				this->CompileExpression();
 				if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ';')){this->syntaxErr("Invalid Return!","Missing semicolon; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");}
+			}else{
+				if(subRetType == "void"){Writer.writePush(segmentEnum::CONST,0);}else{this->symbolErr("Invalid Return!","Void return from function type "+subRetType);}
 			}
-			this->commitToken();
+			Writer.writeReturn();
 			Tokenizer.advance();
-			ofile << "</returnStatement>" << std::endl;
 		};
 		void compileIf(){
-			ofile << "<ifStatement>" << std::endl;
-			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::IF)){this->syntaxErr("Invalid IF!","Called without IF!");};
-			this->commitToken();
+			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::IF)){this->debugErr("Invalid IF!","Called without IF!");};
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid If!","Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
 			Tokenizer.advance();
 			this->CompileExpression();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid If!","Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
+			Writer.WriteArithmetic(commandEnum::NOT);
+			Writer.WriteIf("elseif"+to_string(this->ifcount));
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid If!","Missing open curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
 			Tokenizer.advance();
 			this->compileStatements();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid If!","Missing close curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			this->commitToken();
+			Writer.WriteGoto("endif"+to_string(this->ifcount));
 			//else
 			Tokenizer.advance();
 			if(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::ELSE){
-				this->commitToken();
 				Tokenizer.advance();
+				Writer.WriteLabel("elseif"+to_string(this->ifcount));
 				if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid ELSE!","Missing open curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-				this->commitToken();
 				Tokenizer.advance();
 				this->compileStatements();
 				if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid ELSE!","Missing close curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-				this->commitToken();
 				Tokenizer.advance();
-			};
-			ofile << "</ifStatement>" << std::endl;
+			}else{Writer.WriteLabel("elseif"+to_string(this->ifcount));};
+			Writer.WriteLabel("endif"+to_string(this->ifcount));
+			this->ifcount++;
 		};
 		void CompileExpression(){
-			ofile << "<expression>" << std::endl;
 			bool needOp = false;
+			char prevOp = '\0';
 			while(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && this->isExpressionTerminator(Tokenizer.symbol))){
 				if(needOp){
 					if(Tokenizer.tokenType==tokenTypeEnum::SYMBOL && this->isOpChar(Tokenizer.symbol)){
-						this->commitToken();
+						prevOp = Tokenizer.symbol;
 						Tokenizer.advance();
 					}else{this->syntaxErr("Invalid EXPRESSION!","Repeated term; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");}
 				}else{
 					this->CompileTerm();
+					if(prevOp != '\0'){
+						switch(prevOp){
+							case '+':
+								Writer.WriteArithmetic(commandEnum::ADD);
+								break;
+							case '-':
+								Writer.WriteArithmetic(commandEnum::SUB);
+								break;
+							case '*':
+								Writer.writeCall("Math.multiply",2);
+								break;
+							case '/':
+								Writer.writeCall("Math.divide",2);
+								break;
+							case '&':
+								Writer.WriteArithmetic(commandEnum::AND);
+								break;
+							case '|':
+								Writer.WriteArithmetic(commandEnum::OR;
+								break;
+							case '<':
+								Writer.WriteArithmetic(commandEnum::LT);
+								break;
+							case '>':
+								Writer.WriteArithmetic(commandEnum::GT);
+								break;
+							case '=':
+								Writer.WriteArithmetic(commandEnum::EQ);
+								break;
+							default:
+								this->debugErr("Invalid EXPRESSION!","Repeated term; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");
+								break;
+						}
+					}
 				}
 				needOp = !needOp;
 			};
 			//Terminators: ) ] ; ,
-			ofile << "</expression>" << std::endl;
 		};
 		void CompileTerm(){
-			ofile << "<term>" << std::endl;
 			switch(Tokenizer.tokenType){
 				case tokenTypeEnum::INT_CONST:
+					Writer.writePush(segmentEnum::CONST,Tokenizer.intVal);
+					Tokenizer.advance();
+					break;
 				case tokenTypeEnum::STRING_CONST:
-					this->commitToken();
+					Writer.writePush(segmentEnum::CONST,Tokenizer.stringVal.length());
+					Writer.writeCall("String.new",1);
 					Tokenizer.advance();
 					break;
 				case tokenTypeEnum::IDENTIFIER:
-					this->commitToken();
-					ofile << "<info>Name: " << Tokenizer.identifier << ",Type: " << Tabler.TypeOf(Tokenizer.identifier) << ",Kind: " << static_cast<short unsigned int>(Tabler.KindOf(Tokenizer.identifier)) << ",Ind: " << Tabler.IndexOf(Tokenizer.identifier) << "</info>" << std::endl;
+					std::string termID = Tokenizer.identifier;
+					std::string termType = Tabler.TypeOf(Tokenizer.identifier);
+					short unsigned callType = 0;
+					short unsigned numArg = 0;
 					Tokenizer.advance();
 					switch(Tokenizer.tokenType){
 						case tokenTypeEnum::SYMBOL:
 							switch(Tokenizer.symbol){
 								case '[':
 									//Make meth?
-									this->commitToken();
+									if(termType == ""){this->symbolErr("Invalid var indexing!","Undefined identifier!");}else if(this->isPrimitive(termType)){this->symbolErr("Invalid var indexing!",funcName+" is a Jack Primitive!");};
+									Writer.writePush(this->varToSeg(Tabler.KindOf(termID)),Tabler.IndexOf(termID));
 									Tokenizer.advance();
 									this->CompileExpression();
 									if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ']')){this->syntaxErr("Invalid Term!","Arrayvar missing close bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-									this->commitToken();
+									Writer.WriteArithmetic(commandEnum::ADD);
+									Writer.writePop(segmentEnum::POINTER,1);
+									Writer.writePush(segmentEnum::THAT,0);
 									Tokenizer.advance();
 									break;
 								case '.':
-									this->commitToken();
+									if(termType == ""){callType=2;}else if(this->isPrimitive(termType)){this->symbolErr("Invalid method call!",funcName+" is a Jack Primitive!");}else{callType=1;};
 									Tokenizer.advance();
 									if(!(Tokenizer.tokenType == tokenTypeEnum::IDENTIFIER)){this->syntaxErr("Invalid Term!","subroutineCall Missing meth identifier!");};
-									this->commitToken();
+									switch(callType){
+										case 2:
+											termID += '.'+Tokenizer.identifier;
+											break;
+										case 1:
+											Writer.writePush(this->varToSeg(Tabler.KindOf(termID)),Tabler.IndexOf(termID));
+											termID = termType+'.'+Tokenizer.identifier;
+										default:
+											this->debugErr("Invalid callType","Called not using method or static on .");
+									}
 									Tokenizer.advance();
 									if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid Term!","subroutineCall Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 								case '(':
-									this->commitToken();
-									//Tokenizer.advance();
-									this->CompileExpressionList();
+									numArg = this->CompileExpressionList();
 									//uncommitted )
 									if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid Term!","subroutineCall Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-									this->commitToken();
+									switch(callType){
+										case 0:
+											Writer.writeCall(this->className+'.'+termID,numArg);
+											break;
+										case 1:
+											Writer.writeCall(termID,numArg+1);
+											
+											break;
+										case 2:
+											Writer.writeCall(termID,numArg);
+											break;
+									}
 									Tokenizer.advance();
 									break;
 								default:
@@ -543,18 +609,26 @@ class CompilationEngine {
 				case tokenTypeEnum::SYMBOL:
 					switch(Tokenizer.symbol){
 						case '(':
-							this->commitToken();
 							Tokenizer.advance();
 							this->CompileExpression();
 							if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid TERM!","Missing expression close paren!");};
-							this->commitToken();
 							Tokenizer.advance();
 							break;
 						case '-':
 						case '~':
-							this->commitToken();
+							char uOp = Tokenizer.symbol;
 							Tokenizer.advance();
 							this->CompileTerm();
+							switch(uOp){
+								case '-':
+									Writer.WriteArithmetic(commandEnum::NEG);
+									break;
+								case '~':
+									Writer.WriteArithmetic(commandEnum::NOT);
+									break;
+								default:
+									this->debugErr("Invalid UOP","Called without UOP Symbol.")
+							}
 							break;
 						default:
 							this->syntaxErr("Invalid TERM!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+Tokenizer.symbol);
@@ -562,15 +636,24 @@ class CompilationEngine {
 					};
 					break;
 				case tokenTypeEnum::KEYWORD:
-					if(this->isKeywordConst(Tokenizer.keyWord)){
-						this->commitToken();
-						Tokenizer.advance();
-					}else{
-						this->syntaxErr("Invalid TERM!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+keywordString[static_cast<short unsigned int>(Tokenizer.keyWord)]);
-					}
+					switch(check){
+						case keyWordEnum::THIS:
+							Writer.writePush(segmentEnum::POINTER,0);
+							break;
+						case keyWordEnum::TRUE:
+							Writer.writePush(segmentEnum::CONST,1);
+							Writer.WriteArithmetic(commandEnum::NEG);
+							break;
+						case keyWordEnum::FALSE:
+						case keyWordEnum::J_NULL:
+							Writer.writePush(segmentEnum::CONST,0);
+							break;
+						default:
+							this->syntaxErr("Invalid TERM!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+keywordString[static_cast<short unsigned int>(Tokenizer.keyWord)]);
+					};
+					Tokenizer.advance();
 					break;
 			};
-			ofile << "</term>" << std::endl;
 		};
 		short unsigned CompileExpressionList(){
 			bool nedComma = false;
@@ -596,45 +679,13 @@ class CompilationEngine {
 		const std::string tokenTypeTags[5] = {"keyword","symbol","identifier","integerConstant","stringConstant"};
 		const std::string keywordString[21] = {"class","method","function","constructor","int","boolean","char","void","var","static","field","let","do","if","else","while","return","true","false","null","this"};
 		std::string className;
-		void commitToken(){
-			ofile << "<" << tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)] << ">" << std::endl;
-			//ofile << "<" << tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)] << "> ";
-			switch(Tokenizer.tokenType){
-				case tokenTypeEnum::KEYWORD:
-					ofile << keywordString[static_cast<short unsigned int>(Tokenizer.keyWord)];
-					break;
-				case tokenTypeEnum::IDENTIFIER:
-					ofile << Tokenizer.identifier;
-					break;
-				case tokenTypeEnum::SYMBOL:
-					switch(Tokenizer.symbol){
-						case '&':
-							ofile << "&amp;";
-							break;
-						case '<':
-							ofile << "&lt;";
-							break;
-						case '>':
-							ofile << "&gt;";
-							break;
-						default:
-							ofile << Tokenizer.symbol;
-							break;
-					}
-					break;
-				case tokenTypeEnum::STRING_CONST:
-					//ofile << Tokenizer.stringVal << std::endl;
-					ofile << Tokenizer.stringVal;
-					break;
-				case tokenTypeEnum::INT_CONST:
-					//ofile << Tokenizer.intVal << std::endl;
-					ofile << Tokenizer.intVal;
-					break;
-			}
-			ofile << std::endl << "</" << tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)] << ">" << std::endl;
-			//ofile << " </" << tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)] << ">" << std::endl;
-		}
+		keyWordEnum subType;
+		std::string subRetType;
+		short unsigned ifcount = 0;
+		short unsigned whilecount = 0;
 		void syntaxErr(std::string etype,std::string emsg) {ofile.close();ifile.close();throw std::invalid_argument("SYNTAXERR:\n" + etype + "\n" + emsg);}
+		void symbolErr(std::string etype,std::string emsg) {ofile.close();ifile.close();throw std::out_of_range("SYMBOLERR:\n" + etype + "\n" + emsg);}
+		void debugErr(std::string etype,std::string emsg) {ofile.close();ifile.close();throw std::invalid_argument("COSMICERR:\nA cosmic ray may have hit your computer.\n" + etype + "\n" + emsg);}
 		bool isTypeKeyword(keyWordEnum check){
 			switch(check){
 				case keyWordEnum::INT:
@@ -661,6 +712,25 @@ class CompilationEngine {
 					return false;
 			}
 		}
+		segmentEnum varToSeg(varType chk){
+			switch(chk){
+				case varType::STATIC:
+					return segmentEnum::STATIC;
+					break;
+				case varType::FIELD:
+					return segmentEnum::THIS;
+					break;
+				case varType::ARG:
+					return segmentEnum::ARG;
+					break;
+				case varType::VAR:
+					return segmentEnum::LOCAL;
+					break;
+				default:
+					this->debugErr("Invalid varType!","varToSeg call invalid.");
+					break;
+			}
+		}
 		/*
 		bool isUnaryOpChar(char check){
 			switch(check){
@@ -682,6 +752,16 @@ class CompilationEngine {
 				default:
 					return false;
 			}
+		}
+		bool isPrimitive(std::string check){
+			switch(check){
+				case keywordString[4]:
+				case keywordString[5]:
+				case keywordString[6]:
+					return true;
+				default:
+					return false;
+			};
 		}
 		bool isExpressionTerminator(char check){
 			switch(check){

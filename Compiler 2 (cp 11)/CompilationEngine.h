@@ -122,8 +122,8 @@ class CompilationEngine {
 		};
 		void CompileSubroutine(){
 			Tabler.startSubroutine();
-			if(Tokenizer.tokenType != tokenTypeEnum::KEYWORD){this->debugErr("Invalid subroutineDec!","Called without keyword!");}};
-			subType = Tokenizer.keyWord;
+			if(Tokenizer.tokenType != tokenTypeEnum::KEYWORD){this->debugErr("Invalid subroutineDec!","Called without keyword!");};
+			keyWordEnum subType = this->Tokenizer.keyWord;
 			switch(subType){
 				case keyWordEnum::METHOD:
 				case keyWordEnum::FUNCTION:
@@ -132,7 +132,7 @@ class CompilationEngine {
 				default:
 					this->syntaxErr("Invalid subroutineDec!","Called without def keyword!");
 					break;
-			}
+			};
 			Tokenizer.advance();
 			switch(Tokenizer.tokenType){
 				case tokenTypeEnum::KEYWORD:
@@ -177,8 +177,8 @@ class CompilationEngine {
 					Writer.writePop(segmentEnum::POINTER,0);
 					break;
 				case keyWordEnum::CONSTRUCTOR:
-					Writer.writePush(segmentEnum::CONST,Tabler.varCount(varType::FIELD));
-					Writer.writeCall("Memory.alloc");
+					Writer.writePush(segmentEnum::CONST,Tabler.VarCount(varType::FIELD));
+					Writer.writeCall("Memory.alloc",1);
 					Writer.writePop(segmentEnum::POINTER,0);
 					break;
 			};
@@ -337,10 +337,11 @@ class CompilationEngine {
 			funcName = Tokenizer.identifier;
 			Tokenizer.advance();
 			if(Tokenizer.tokenType != tokenTypeEnum::SYMBOL){this->syntaxErr("Invalid Do!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
+			std::string callerType = "";
 			switch(Tokenizer.symbol){
 				case '.':
-					std::string callerType = Tabler.TypeOf(funcName);
-					if(this->isPrimitive(callerType)){this->symbolErr("Invalid method call!",funcName+" is a Jack Primitive!");}else if(callerType != ""){Writer.writePush(this->varToSeg(Tabler.KindOf(funcName)),Tabler.IndexOf(funcName));}
+					callerType = Tabler.TypeOf(funcName);
+					if(this->isPrimitive(callerType)){this->symbolErr("Invalid classFunc call!",funcName+" is a Jack Primitive!");}else if(callerType != ""){Writer.writePush(this->varToSeg(Tabler.KindOf(funcName)),Tabler.IndexOf(funcName));funcName = callerType;}
 					//to be corrected
 					funcName += '.';
 					Tokenizer.advance();
@@ -512,7 +513,7 @@ class CompilationEngine {
 								Writer.WriteArithmetic(commandEnum::AND);
 								break;
 							case '|':
-								Writer.WriteArithmetic(commandEnum::OR;
+								Writer.WriteArithmetic(commandEnum::OR);
 								break;
 							case '<':
 								Writer.WriteArithmetic(commandEnum::LT);
@@ -534,6 +535,11 @@ class CompilationEngine {
 			//Terminators: ) ] ; ,
 		};
 		void CompileTerm(){
+			char uOp = '\0';
+			std::string termID = "";
+			std::string termType = "";
+			short unsigned callType = 0;
+			short unsigned numArg = 0;
 			switch(Tokenizer.tokenType){
 				case tokenTypeEnum::INT_CONST:
 					Writer.writePush(segmentEnum::CONST,Tokenizer.intVal);
@@ -545,17 +551,17 @@ class CompilationEngine {
 					Tokenizer.advance();
 					break;
 				case tokenTypeEnum::IDENTIFIER:
-					std::string termID = Tokenizer.identifier;
-					std::string termType = Tabler.TypeOf(Tokenizer.identifier);
-					short unsigned callType = 0;
-					short unsigned numArg = 0;
+					termID = Tokenizer.identifier;
+					termType = Tabler.TypeOf(Tokenizer.identifier);
+					callType = 0;
+					numArg = 0;
 					Tokenizer.advance();
 					switch(Tokenizer.tokenType){
 						case tokenTypeEnum::SYMBOL:
 							switch(Tokenizer.symbol){
 								case '[':
 									//Make meth?
-									if(termType == ""){this->symbolErr("Invalid var indexing!","Undefined identifier!");}else if(this->isPrimitive(termType)){this->symbolErr("Invalid var indexing!",funcName+" is a Jack Primitive!");};
+									if(termType == ""){this->symbolErr("Invalid var indexing!","Undefined identifier!");}else if(this->isPrimitive(termType)){this->symbolErr("Invalid var indexing!",termID+" is a Jack Primitive!");};
 									Writer.writePush(this->varToSeg(Tabler.KindOf(termID)),Tabler.IndexOf(termID));
 									Tokenizer.advance();
 									this->CompileExpression();
@@ -566,7 +572,7 @@ class CompilationEngine {
 									Tokenizer.advance();
 									break;
 								case '.':
-									if(termType == ""){callType=2;}else if(this->isPrimitive(termType)){this->symbolErr("Invalid method call!",funcName+" is a Jack Primitive!");}else{callType=1;};
+									if(termType == ""){callType=2;}else if(this->isPrimitive(termType)){this->symbolErr("Invalid method call!",termID+" is a Jack Primitive!");}else{callType=1;};
 									Tokenizer.advance();
 									if(!(Tokenizer.tokenType == tokenTypeEnum::IDENTIFIER)){this->syntaxErr("Invalid Term!","subroutineCall Missing meth identifier!");};
 									switch(callType){
@@ -616,7 +622,7 @@ class CompilationEngine {
 							break;
 						case '-':
 						case '~':
-							char uOp = Tokenizer.symbol;
+							uOp = Tokenizer.symbol;
 							Tokenizer.advance();
 							this->CompileTerm();
 							switch(uOp){
@@ -627,7 +633,7 @@ class CompilationEngine {
 									Writer.WriteArithmetic(commandEnum::NOT);
 									break;
 								default:
-									this->debugErr("Invalid UOP","Called without UOP Symbol.")
+									this->debugErr("Invalid UOP","Called without UOP Symbol.");
 							}
 							break;
 						default:
@@ -636,7 +642,7 @@ class CompilationEngine {
 					};
 					break;
 				case tokenTypeEnum::KEYWORD:
-					switch(check){
+					switch(Tokenizer.keyWord){
 						case keyWordEnum::THIS:
 							Writer.writePush(segmentEnum::POINTER,0);
 							break;
@@ -731,17 +737,6 @@ class CompilationEngine {
 					break;
 			}
 		}
-		/*
-		bool isUnaryOpChar(char check){
-			switch(check){
-				case '~':
-				case '-':
-					return true;
-				default:
-					return false;
-			}
-		}
-		*/
 		bool isKeywordConst(keyWordEnum check){
 			switch(check){
 				case keyWordEnum::TRUE:
@@ -754,14 +749,10 @@ class CompilationEngine {
 			}
 		}
 		bool isPrimitive(std::string check){
-			switch(check){
-				case keywordString[4]:
-				case keywordString[5]:
-				case keywordString[6]:
-					return true;
-				default:
-					return false;
-			};
+			if(check == keywordString[4] || check == keywordString[5] || check == keywordString[6]){
+				return true;
+			}
+			return false;
 		}
 		bool isExpressionTerminator(char check){
 			switch(check){

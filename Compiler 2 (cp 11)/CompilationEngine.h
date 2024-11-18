@@ -546,8 +546,14 @@ class CompilationEngine {
 					Tokenizer.advance();
 					break;
 				case tokenTypeEnum::STRING_CONST:
+					//Unfinished
 					Writer.writePush(segmentEnum::CONST,Tokenizer.stringVal.length());
 					Writer.writeCall("String.new",1);
+					for(short unsigned i;i<Tokenizer.stringVal.length();i++){
+						Writer.writePush(segmentEnum::CONST,static_cast<short unsigned>(Tokenizer.stringVal[i]));
+						Writer.writeCall("String.appendChar",2);
+						Writer.writePop(segmentEnum::TEMP,0);
+					}
 					Tokenizer.advance();
 					break;
 				case tokenTypeEnum::IDENTIFIER:

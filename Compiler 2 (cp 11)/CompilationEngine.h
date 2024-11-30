@@ -7,6 +7,7 @@
 #include "JackTokenizer.h"
 #include "SymbolTable.h"
 #include "VMWriter.h"
+//where are the segmentenum::this???
 class CompilationEngine {
 	public:
 		CompilationEngine(std::ifstream &ifilein,std::ofstream &ofilein,JackTokenizer &tokenin,VMWriter &writein):ifile(ifilein),ofile(ofilein),Tokenizer(tokenin),Writer(writein){
@@ -391,6 +392,8 @@ class CompilationEngine {
 							hasIndex = true;
 							Tokenizer.advance();
 							this->CompileExpression();
+							//Wouldn't work because of func calls
+							//Writer.writePop(segmentEnum::TEMP,1);
 							if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ']')){this->syntaxErr("Invalid Let!","Missing close bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 							Tokenizer.advance();
 							if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '=')){this->syntaxErr("Invalid Let!","Missing equal; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
@@ -407,15 +410,39 @@ class CompilationEngine {
 				
 			}
 			Tokenizer.advance();
+			
+			/*
 			if(isClassName){
 				Writer.writePush(outSeg,outInd);
 				if(hasIndex){Writer.WriteArithmetic(commandEnum::ADD);}
+				//this?
 				Writer.writePop(segmentEnum::POINTER,1);
 			}
+			*/
+			
 			this->CompileExpression();
 			//this will leave res on stack
 			if(isClassName){
+				//Place it in this instead of that?
+				//solution I made is compute output after computing value
+				if(hasIndex){
+					Writer.writePop(segmentEnum::TEMP,0);
+					Writer.writePush(outSeg,outInd);
+					Writer.WriteArithmetic(commandEnum::ADD);
+					Writer.writePop(segmentEnum::POINTER,1);
+					Writer.writePush(segmentEnum::TEMP,0);
+					Writer.writePop(segmentEnum::THAT,0);
+				}else{
+					Writer.writePush(outSeg,outInd);
+					Writer.writePop(segmentEnum::POINTER,1);
+					Writer.writePop(segmentEnum::THAT,0);
+				}
+				
+				/*
+				if(hasIndex){Writer.writePush(segmentEnum::TEMP,1);Writer.WriteArithmetic(commandEnum::ADD);}
+				Writer.writePop(segmentEnum::POINTER,1);
 				Writer.writePop(segmentEnum::THAT,0);
+				*/
 			}else{
 				Writer.writePop(outSeg,outInd);
 			}
@@ -612,6 +639,7 @@ class CompilationEngine {
 									Tokenizer.advance();
 									break;
 								default:
+									Writer.writePush(this->varToSeg(Tabler.KindOf(termID)),Tabler.IndexOf(termID));
 									break;
 							}
 						default:

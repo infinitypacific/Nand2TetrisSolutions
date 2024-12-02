@@ -1,0 +1,10 @@
+﻿class Main {
+
+   function void main() {
+       var int a;
+	   var boolean b,g;
+	   var Array lol;
+       return a+b+lol[0];
+   }
+
+}

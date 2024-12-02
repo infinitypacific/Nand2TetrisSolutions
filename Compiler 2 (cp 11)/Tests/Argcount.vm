@@ -1,0 +1,11 @@
+function Main.main 4
+push local 0
+push local 1
+add
+push local 3
+push constant 0
+add
+pop pointer 1
+push that 0
+add
+return

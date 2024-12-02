@@ -165,9 +165,8 @@ class CompilationEngine {
 			unsigned short int lclAmt = 0;
 			Tokenizer.advance();
 			while(Tokenizer.hasMoreTokens && Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::VAR){
-				this->compileVarDec();
+				lclAmt += this->compileVarDec();
 				Tokenizer.advance();
-				lclAmt++;
 			}
 			//Most services handeled by jcakstd. Sys.init is one
 			//subName = this->className+'.'+subIdn;
@@ -234,7 +233,7 @@ class CompilationEngine {
 				Tokenizer.advance();
 			}
 		};
-		void compileVarDec(){
+		unsigned short compileVarDec(){
 			std::string type;
 			if(!(Tokenizer.tokenType==tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::VAR)){this->syntaxErr("Invalid varDec!","Called without VAR!");};
 			Tokenizer.advance();
@@ -255,6 +254,7 @@ class CompilationEngine {
 			}
 			Tokenizer.advance();
 			bool nedcomm = false;
+			short unsigned defamt = 0;
 			while(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ';') && Tokenizer.hasMoreTokens){
 				switch(Tokenizer.tokenType){
 					case tokenTypeEnum::SYMBOL:
@@ -271,6 +271,7 @@ class CompilationEngine {
 					case tokenTypeEnum::IDENTIFIER:
 						if(!nedcomm){
 							Tabler.Define(Tokenizer.identifier,type,varType::VAR);
+							defamt++;
 						}else{
 							this->syntaxErr("Invalid varDec!","varDec has a repeating identifier! (Did you accidentally add a space?)");
 						};
@@ -284,7 +285,8 @@ class CompilationEngine {
 				}
 				nedcomm = !nedcomm;
 				Tokenizer.advance();
-			}
+			};
+			return defamt;
 		};
 		void compileStatements(){
 			bool vldloop = true;
@@ -451,22 +453,23 @@ class CompilationEngine {
 		};
 		void compileWhile(){
 			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::WHILE)){this->debugErr("Invalid While!","Called without WHILE!");};
-			Writer.WriteLabel("startwhile"+to_string(this->whilecount));
+			std::string curind = to_string(this->whilecount);
+			this->whilecount++;
+			Writer.WriteLabel("startwhile"+curind);
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid While!","Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Tokenizer.advance();
 			this->CompileExpression();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid While!","Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Writer.WriteArithmetic(commandEnum::NOT);
-			Writer.WriteIf("endwhile"+to_string(this->whilecount));
+			Writer.WriteIf("endwhile"+curind);
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid While!","Missing open curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Tokenizer.advance();
 			this->compileStatements();
-			Writer.WriteGoto("startwhile"+to_string(this->whilecount));
+			Writer.WriteGoto("startwhile"+curind);
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid While!","Missing close curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			Writer.WriteLabel("endwhile"+to_string(this->whilecount));
-			this->whilecount++;
+			Writer.WriteLabel("endwhile"+curind);
 			Tokenizer.advance();
 		};
 		void compileReturn(){
@@ -485,31 +488,34 @@ class CompilationEngine {
 		void compileIf(){
 			if(!(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::IF)){this->debugErr("Invalid IF!","Called without IF!");};
 			Tokenizer.advance();
+			//std::cout << to_string(this->ifcount);
+			std::string curind = to_string(this->ifcount);
+			this->ifcount++;
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid If!","Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Tokenizer.advance();
 			this->CompileExpression();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid If!","Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Writer.WriteArithmetic(commandEnum::NOT);
-			Writer.WriteIf("elseif"+to_string(this->ifcount));
+			Writer.WriteIf("elseif"+curind);
 			Tokenizer.advance();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid If!","Missing open curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Tokenizer.advance();
 			this->compileStatements();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid If!","Missing close curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
-			Writer.WriteGoto("endif"+to_string(this->ifcount));
+			Writer.WriteGoto("endif"+curind);
 			//else
 			Tokenizer.advance();
 			if(Tokenizer.tokenType == tokenTypeEnum::KEYWORD && Tokenizer.keyWord == keyWordEnum::ELSE){
 				Tokenizer.advance();
-				Writer.WriteLabel("elseif"+to_string(this->ifcount));
+				Writer.WriteLabel("elseif"+curind);
 				if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '{')){this->syntaxErr("Invalid ELSE!","Missing open curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 				Tokenizer.advance();
 				this->compileStatements();
 				if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid ELSE!","Missing close curly bracket; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 				Tokenizer.advance();
-			}else{Writer.WriteLabel("elseif"+to_string(this->ifcount));};
-			Writer.WriteLabel("endif"+to_string(this->ifcount));
-			this->ifcount++;
+			}else{Writer.WriteLabel("elseif"+curind);};
+			Writer.WriteLabel("endif"+curind);
+			//this->ifcount++;
 		};
 		void CompileExpression(){
 			bool needOp = false;

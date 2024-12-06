@@ -341,10 +341,11 @@ class CompilationEngine {
 			Tokenizer.advance();
 			if(Tokenizer.tokenType != tokenTypeEnum::SYMBOL){this->syntaxErr("Invalid Do!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			std::string callerType = "";
+			short unsigned suffixnum = 0;
 			switch(Tokenizer.symbol){
 				case '.':
 					callerType = Tabler.TypeOf(funcName);
-					if(this->isPrimitive(callerType)){this->symbolErr("Invalid classFunc call!",funcName+" is a Jack Primitive!");}else if(callerType != ""){Writer.writePush(this->varToSeg(Tabler.KindOf(funcName)),Tabler.IndexOf(funcName));funcName = callerType;}
+					if(this->isPrimitive(callerType)){this->symbolErr("Invalid classFunc call!",funcName+" is a Jack Primitive!");}else if(callerType != ""){Writer.writePush(this->varToSeg(Tabler.KindOf(funcName)),Tabler.IndexOf(funcName));funcName = callerType;suffixnum++;}
 					//to be corrected
 					funcName += '.';
 					Tokenizer.advance();
@@ -354,13 +355,14 @@ class CompilationEngine {
 					if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid Do!","Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 					break;
 				case '(':
+					//mar:prob issue, THESE FUNCTIONS DON'T EXIST EXCEPT WHEN USING METHODS?
 					break;
 				default:
 					this->syntaxErr("Invalid Do!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+Tokenizer.symbol);
 					break;
 			}
 			short unsigned numArg;
-			numArg = this->CompileExpressionList();
+			numArg = this->CompileExpressionList()+suffixnum;
 			//uncommitted )
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid Do!","Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 			Tokenizer.advance();
@@ -424,22 +426,23 @@ class CompilationEngine {
 			
 			this->CompileExpression();
 			//this will leave res on stack
-			if(isClassName){
+			if(isClassName && hasIndex){
 				//Place it in this instead of that?
 				//solution I made is compute output after computing value
-				if(hasIndex){
-					Writer.writePop(segmentEnum::TEMP,0);
-					Writer.writePush(outSeg,outInd);
-					Writer.WriteArithmetic(commandEnum::ADD);
-					Writer.writePop(segmentEnum::POINTER,1);
-					Writer.writePush(segmentEnum::TEMP,0);
-					Writer.writePop(segmentEnum::THAT,0);
+				//removed the hasindex if here cuz constructors return pointers and i'm stupid
+				Writer.writePop(segmentEnum::TEMP,0);
+				Writer.writePush(outSeg,outInd);
+				Writer.WriteArithmetic(commandEnum::ADD);
+				Writer.writePop(segmentEnum::POINTER,1);
+				Writer.writePush(segmentEnum::TEMP,0);
+				Writer.writePop(segmentEnum::THAT,0);
+				/*
 				}else{
 					Writer.writePush(outSeg,outInd);
 					Writer.writePop(segmentEnum::POINTER,1);
 					Writer.writePop(segmentEnum::THAT,0);
 				}
-				
+				*/
 				/*
 				if(hasIndex){Writer.writePush(segmentEnum::TEMP,1);Writer.WriteArithmetic(commandEnum::ADD);}
 				Writer.writePop(segmentEnum::POINTER,1);

@@ -356,6 +356,10 @@ class CompilationEngine {
 					break;
 				case '(':
 					//mar:prob issue, THESE FUNCTIONS DON'T EXIST EXCEPT WHEN USING METHODS?
+					//confirm that this is method syntax
+					funcName = className + '.' + funcName;
+					Writer.writePush(segmentEnum::POINTER,0);
+					suffixnum++;
 					break;
 				default:
 					this->syntaxErr("Invalid Do!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+Tokenizer.symbol);
@@ -635,7 +639,9 @@ class CompilationEngine {
 									if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == ')')){this->syntaxErr("Invalid Term!","subroutineCall Missing close paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
 									switch(callType){
 										case 0:
-											Writer.writeCall(this->className+'.'+termID,numArg);
+											//Method call
+											Writer.writePush(segmentEnum::POINTER,0);
+											Writer.writeCall(this->className+'.'+termID,numArg+1);
 											break;
 										case 1:
 											Writer.writeCall(termID,numArg+1);

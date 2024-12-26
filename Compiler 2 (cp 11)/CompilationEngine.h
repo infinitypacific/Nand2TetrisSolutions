@@ -127,6 +127,8 @@ class CompilationEngine {
 			keyWordEnum subType = this->Tokenizer.keyWord;
 			switch(subType){
 				case keyWordEnum::METHOD:
+					Tabler.Define("this","this",varType::ARG); //doesn't cause prob cuz keywordString
+					//this->argappend = 1;
 				case keyWordEnum::FUNCTION:
 				case keyWordEnum::CONSTRUCTOR:
 					break;
@@ -185,6 +187,7 @@ class CompilationEngine {
 			//labels are handled auto (see 8.6)
 			this->compileStatements();
 			if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '}')){this->syntaxErr("Invalid subroutineBody!","subroutineBody missing close curly bracket!");};
+			//this->argappend = 0;
 		};
 		void compileParameterList(){
 			int mode = 0;
@@ -310,7 +313,7 @@ class CompilationEngine {
 								this->compileReturn();
 								break;
 							default:
-								this->syntaxErr("Invalid statements!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+keywordString[static_cast<short unsigned int>(Tokenizer.keyWord)]);
+    								this->syntaxErr("Invalid statements!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+": "+keywordString[static_cast<short unsigned int>(Tokenizer.keyWord)]);
 								break;
 						}
 						break;
@@ -604,6 +607,7 @@ class CompilationEngine {
 					Tokenizer.advance();
 					switch(Tokenizer.tokenType){
 						case tokenTypeEnum::SYMBOL:
+    						//std::cout << "Symbol!";
 							switch(Tokenizer.symbol){
 								case '[':
 									//Make meth?
@@ -621,6 +625,7 @@ class CompilationEngine {
 									if(termType == ""){callType=2;}else if(this->isPrimitive(termType)){this->symbolErr("Invalid method call!",termID+" is a Jack Primitive!");}else{callType=1;};
 									Tokenizer.advance();
 									if(!(Tokenizer.tokenType == tokenTypeEnum::IDENTIFIER)){this->syntaxErr("Invalid Term!","subroutineCall Missing meth identifier!");};
+									//mar:problem with pong? WHY IS IT COSMICERR in last if of ponggame
 									switch(callType){
 										case 2:
 											termID += '.'+Tokenizer.identifier;
@@ -628,8 +633,9 @@ class CompilationEngine {
 										case 1:
 											Writer.writePush(this->varToSeg(Tabler.KindOf(termID)),Tabler.IndexOf(termID));
 											termID = termType+'.'+Tokenizer.identifier;
+											break;
 										default:
-											this->debugErr("Invalid callType","Called not using method or static on .");
+											this->debugErr("Invalid callType","Called not using method or static on . type=" + to_string(callType));
 									}
 									Tokenizer.advance();
 									if(!(Tokenizer.tokenType == tokenTypeEnum::SYMBOL && Tokenizer.symbol == '(')){this->syntaxErr("Invalid Term!","subroutineCall Missing open paren; Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");};
@@ -645,7 +651,6 @@ class CompilationEngine {
 											break;
 										case 1:
 											Writer.writeCall(termID,numArg+1);
-											
 											break;
 										case 2:
 											Writer.writeCall(termID,numArg);
@@ -654,10 +659,14 @@ class CompilationEngine {
 									Tokenizer.advance();
 									break;
 								default:
+    								//varType idKind = Tabler.KindOf(termID);
+    								if(termType == ""){this->symbolErr("Invalid TERM!","Variable " + termID + " doesn't exist!");};
 									Writer.writePush(this->varToSeg(Tabler.KindOf(termID)),Tabler.IndexOf(termID));
 									break;
 							}
+							break;
 						default:
+    						this->syntaxErr("Invalid TERM!","Floating "+tokenTypeTags[static_cast<short unsigned int>(Tokenizer.tokenType)]+"!");
 							break;
 					}
 					break;
@@ -736,6 +745,7 @@ class CompilationEngine {
 		std::string className;
 		keyWordEnum subType;
 		std::string subRetType;
+		//short unsigned argappend = 0; this is an overcomplication
 		short unsigned ifcount = 0;
 		short unsigned whilecount = 0;
 		void syntaxErr(std::string etype,std::string emsg) {ofile.close();ifile.close();throw std::invalid_argument("SYNTAXERR:\n" + etype + "\n" + emsg);}
@@ -781,6 +791,9 @@ class CompilationEngine {
 				case varType::VAR:
 					return segmentEnum::LOCAL;
 					break;
+				case varType::NONE:
+    				this->symbolErr("Invalid varType!","varToSeg called with a None type variable! (You might've mispelled something)");
+    				break;
 				default:
 					this->debugErr("Invalid varType!","varToSeg call invalid.");
 					break;

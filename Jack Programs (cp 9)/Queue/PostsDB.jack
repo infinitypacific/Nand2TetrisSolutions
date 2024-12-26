@@ -109,9 +109,9 @@ class PostDB {
 		let n[1] = bod;
 		let ii = i;
 		while (ii < totalLength) {
-			if ((ii + 2) > listLen) {
+			if ((ii + 2) > listLen) { //Prob here for some reason
 				let listLen = listLen + pageLength;
-				do Posts.setLen(listen);
+				do Posts.setLen(listLen); //OHH
 			}
 			do Posts.set(ii + 1,Posts.get(ii));
 			let ii = ii + 1;

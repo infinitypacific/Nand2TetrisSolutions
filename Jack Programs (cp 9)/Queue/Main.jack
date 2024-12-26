@@ -27,7 +27,7 @@ class Main {
 		
 		while (true) {
 			if (showh) {
-				do drawUI();
+				do Main.drawUI();
 			}
 			
 			do Posts.drawPosts();
@@ -62,7 +62,7 @@ class Main {
 						if(sel = 3){
 							do Output.moveCursor(22, 0);
 							let presel = Keyboard.readInt("Prefix: 0:Exit 1:Null 2:Numeral 3:Bullet 4:Custom");
-							if(presel = 1 | presel = 2 | presel = 3){
+							if((presel = 1) | (presel = 2) | (presel = 3)){ //Prob here
 								let err = Posts.setPrefix(presel-1);
 							}
 							else{
@@ -208,7 +208,7 @@ class Main {
 			}
 			else {
 				if (err = 1) {
-					do Output.printString("Exception");
+						do Output.printString("Warning");
 				}
 				else {
 					do Output.printString("Error");

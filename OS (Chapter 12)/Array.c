@@ -1,0 +1,4 @@
+﻿class Array {
+	function Array new(int size){return Memory.alloc(size);}
+	method void dispose(){Memory.deAlloc(this);return;}
+}

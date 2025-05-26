@@ -1,0 +1,162 @@
+﻿// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Screen.jack
+/**
+ * A library of functions for displaying graphics on the screen.
+ * The Hack physical screen consists of 512 rows (indexed 0..511, top to bottom)
+ * of 256 pixels each (indexed 0..255, left to right). The top left pixel on 
+ * the screen is indexed (0,0).
+ */
+class Screen {
+	static boolean c;
+	/** Initializes the Screen. */
+	function void init() {
+		let c=true;
+	}
+
+	/** Erases the entire screen. */
+	function void clearScreen() {
+		/*
+		int x,y;
+		let x=0;
+		let y=0;
+		while(y<256){
+			while(x<512){
+				do Screen.drawPixel(x,y);
+				let x=x+1;
+			}
+			let y=y+1;
+		}
+		*/
+		var int i;
+		let i=24576; //8192+16384=24576 zero comp is faster on some arch btw //Misremembered 16 bit as 15
+		while(i>16384){ //Math.bit(i,14)
+			let i = i - 1;
+			do Memory.poke(i,0);
+		}
+	}
+
+	/** Sets the current color, to be used for all subsequent drawXXX commands.
+	 *  Black is represented by true, white by false. */
+	function void setColor(bool b) {
+		let c=b;
+	}
+
+	/** Draws the (x,y) pixel, using the current color. */
+	function void drawPixel(int x, int y) {
+		var int addr,cdiv;
+		// the hell is x<-1 || (x>512)
+		if((x<0) | (x>511)){do Sys.error(0);}
+		if((y<0) | (y>255)){do Sys.error(1);}
+		let cdiv = x/16;
+		let addr = 16384+(y*32+cdiv);
+		if(c){
+			do Memory.poke(addr,Math.enable(Memory.peek(addr),x-(cdiv*16)));
+		}else{
+			do Memory.poke(addr,Math.disable(Memory.peek(addr),x-(cdiv*16)));
+		}
+		return;
+	}
+
+	/** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
+	function void drawLine(int x1, int y1, int x2, int y2) {
+		//var int xinc;
+		var int mdx,temp; //MACRODATA REFINEMENT
+		do Screen.drawPixel(x1,y1);
+		if(y1=y2){
+			if(x1>x2){let temp=x1;let x1=x2;let x2=temp;}
+			while(x1<x2){
+				let x1 = x1+1;
+				do Screen.drawPixel(x1,y1);
+			}
+		}else{
+			if(x1=x2){
+				if(y1>y2){let temp=y1;let y1=y2;let y2=temp;}
+				while(y1<y2){
+					let y1 = y1+1;
+					do Screen.drawPixel(x1,y1);
+				}
+			}else{
+				//if(x1<0 | x2<0 | x1> no need for checks due to auto by drawpixel
+				if(x1>x2){let temp=x1;let x1=x2;let x2=temp;let temp=y1;let y1=y2;let y2=temp;} //to handle y1>y2 in an if implementation
+				let mdx=0;
+				/*
+				unopti
+				while((x1<(x2+1)) & (y1<(y2+1))){
+					Screen.drawPixel(x1,y1);
+					if(mdx>0){
+						let y1=y1+1;
+						let mdx=mdx-y2;
+					}else{
+						let x1=x1+1;
+						let mdx=mdx+x2;
+					}
+				}
+				*/
+				//if I used actual, it would require much more abs and comparisons than this
+				if(y1<y2){
+					while((x1<x2) & (y1<y2)){
+						if(mdx>0){
+							let y1=y1+1;
+							let mdx=mdx-y2;//could work idk
+						}else{
+							let x1=x1+1;
+							let mdx=mdx+x2;
+						}
+						do Screen.drawPixel(x1,y1);
+					}
+				}else{
+					while((x1<x2) & (y1>y2)){
+						if(mdx>0){
+							let y1=y1-1;
+							let mdx=mdx-y2;//could work idk
+						}else{
+							let x1=x1+1;
+							let mdx=mdx+x2;
+						}
+						do Screen.drawPixel(x1,y1);
+					}
+				}
+			}
+		}
+		return;
+	}
+
+	/** Draws a filled rectangle whose top left corner is (x1, y1)
+	 *  and bottom right corner is (x2,y2), using the current color. */
+	function void drawRectangle(int x1, int y1, int x2, int y2) {
+		var int temp,x;
+		if(y1>y2){let temp=y1;let y1=y2;let y2=temp;}
+		if(x1>x2){let temp=x1;let x1=x2;let x2=temp;}
+		while(y1<(y2+1)){
+			let x = x1;
+			while(x<(x2+1)){
+				do Screen.drawPixel(x,y1);
+				let x = x + 1;
+			}
+			let y1 = y1 + 1;
+		}
+		return;
+	}
+
+	/** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
+	function void drawCircle(int x, int y, int r) {
+		var int dy,dx,ypr,dist,rsq;
+		let dy=-r-1;
+		//ypr = y+r+1; ypr
+		let rsq = r*r;
+		while(dy<r){
+			//ypr = y+r+1;
+			let dy = dy+1;
+			let ypr = y+dy;
+			let dist = Math.sqrt(rsq-(dy*dy));
+			let dx = x-dist-1;
+			while(dx < (x+dist)){
+				let dx = dx+1;
+				do Screen.drawPixel(dx,ypr);
+			}
+		}
+		return;
+	}
+}

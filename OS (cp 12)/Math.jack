@@ -1,0 +1,155 @@
+﻿// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+/**
+ *  A library of commonly used mathematical functions.
+ *  All functions runs in O(n), where n is the number of bits used
+ *  for representing a two's complement integer value (16 in the Hack computer). 
+ *  Note: Jack compilers implement multiplication and division
+ *  using calls to OS functions in this class.
+ */
+class Math {
+	static int n;			 // Number of bits used for representing a two's complement integer
+	static Array powersOfTwo; // Stores 2^0, 2^1, 2^2,..., 2^(n-1)
+	static int prevDivChk,remainDiv;
+	//static bool remainDivVld;
+	// Initializes the Math library.
+	function void init() {
+		let n = 16;
+		let powersOfTwo = Array.new(n);
+		/*
+		whoops offset
+		let powersOfTwo[0] = 0;
+		let powersOfTwo[1] = 1;
+		let powersOfTwo[2] = 2;
+		let powersOfTwo[3] = 4;
+		let powersOfTwo[4] = 8;
+		let powersOfTwo[5] = 16;
+		let powersOfTwo[6] = 32;
+		let powersOfTwo[7] = 64;
+		let powersOfTwo[8] = 128;
+		let powersOfTwo[9] = 256;
+		let powersOfTwo[10] = 512;
+		//Thank u chatgpt!!!
+		let powersOfTwo[11] = 1024;
+		let powersOfTwo[12] = 2048;
+		let powersOfTwo[13] = 4096;
+		let powersOfTwo[14] = 8192;
+		let powersOfTwo[15] = 16384;
+		let powersOfTwo[16] = 32768;
+		*/
+		let powersOfTwo[0] = 1;	   // 2^0
+		let powersOfTwo[1] = 2;	   // 2^1
+		let powersOfTwo[2] = 4;	   // 2^2
+		let powersOfTwo[3] = 8;	   // 2^3
+		let powersOfTwo[4] = 16;	  // 2^4
+		let powersOfTwo[5] = 32;	  // 2^5
+		let powersOfTwo[6] = 64;	  // 2^6
+		let powersOfTwo[7] = 128;	 // 2^7
+		let powersOfTwo[8] = 256;	 // 2^8
+		let powersOfTwo[9] = 512;	 // 2^9
+		let powersOfTwo[10] = 1024;   // 2^10
+		let powersOfTwo[11] = 2048;   // 2^11
+		let powersOfTwo[12] = 4096;   // 2^12
+		let powersOfTwo[13] = 8192;   // 2^13
+		let powersOfTwo[14] = 16384;  // 2^14
+		let powersOfTwo[15] = 32768;  // 2^15
+	}
+
+	/** Returns the product of x and y. 
+	 *  When a Jack compiler detects the multiplication operator '*'
+	 *  in an expression, it handles it by invoking this method. 
+	 *  Thus, in Jack, x * y and Math.multiply(x,y) return the same value. */
+	function int multiply(int x, int y) {
+		var int res,i;
+		let i=0;
+		let res=0;
+		while(i<n){
+			if(Math.bit(y,i)){
+				let res=res+x;
+			}
+			let x=x+x;
+			let i=i+1;
+		}
+		return res;
+	}
+
+	/** Returns the integer part of x / y.
+	 *  When a Jack compiler detects the division operator '/'
+	 *  an an expression, it handles it by invoking this method.
+	 *  Thus, x/y and Math.divide(x,y) return the same value. */
+	function int divide(int x, int y) {
+		var int q,temp;
+		//y = 2y
+		if(y>x){let remainDiv=x;let prevDivChk=0;return 0;} //2ry = 0
+		if(y=x){let remainDiv=0;let prevDivChk=y;return 1;} //2ry = 2y
+		let q = Math.divide(x,y+y);
+		let q = q+q; //r = 2q
+		let temp = x-prevDivChk;
+		if(temp < y){ //(q*y)
+			let remainDiv = temp; //r=2q;ry=2qy
+			//let remainDivVld = true;
+			let prevDivChk = prevDivChk+prevDivChk; //2ry = 2qy*2
+			return q;
+		}else{
+			//r = 2q+1
+			//let remainDiv = x-((q+1)*y);
+			//let remainDivVld = false;
+			let remainDiv = temp-y; //ry = (2q+1)*y = 2qy+y
+			let prevDivChk = prevDivChk+prevDivChk+y; //2ry = (2q+1)*2y = 4qy+2y = 2qy*2 + 2y
+			return q+1;
+		}
+	}
+
+	/** Returns the integer part of the square root of x. */
+	function int sqrt(int x) {
+		var int y,j,temp;
+		let y=0;
+		let j=7;
+		while(j > -1){
+			let temp = y+powersOfTwo[j];
+			if((temp*temp)<(x+1)){let y = temp;}
+			let j=j-1;
+		}
+		return y;
+	}
+
+	/** Returns the greater value. */
+	function int max(int a, int b) {
+		if(a<b){return b;}else{return a;}
+	}
+
+	/** Returns the smaller value. */
+	function int min(int a, int b) {
+		if(a>b){return b;}else{return a;}
+	}
+
+	/** Returns the absolute value of x. */
+	function int abs(int x) {
+		if(x<0){return -x;}else{return x;}
+	}
+
+	function bool bit(int x,int j){
+		return (x&powersOfTwo[j])>0;
+	}
+
+	function int enable(int x,int j){
+		return x|powersOfTwo[j];
+	}
+	
+	function int disable(int x,int j){
+		return x&~powersOfTwo[j];
+	}
+	
+	function int mod(int x,int y){
+		//x-((x/y)*y)
+		var int temp;
+		let temp = x/y;
+		return remainDiv;
+	}
+
+	function int remainder(){
+		return remainDiv;
+	}
+}

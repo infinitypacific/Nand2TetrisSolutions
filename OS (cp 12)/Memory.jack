@@ -1,0 +1,159 @@
+﻿// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory {
+	static Array mem;
+	static int base,dff,dfi;
+	static bool jDf; //just defagged
+    /** Initializes the class. */
+    function void init() {
+    	let mem = 2048;
+    	let base = mem;
+    	let jDf = true;
+    	let dff = 1;
+    	let dfi = 1;
+    	let mem[0] = 14435; //f.length
+    	let mem[1] = null; //f.next
+    	return;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+    	return mem[address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+    	let mem[address] = value;
+    	return;
+    }
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+	    var int i,l,d,p; //i = index, l = last segment next
+	    let l = null;
+	    let i=base;
+	    //best fit gotta be the stupidest thing i've ever heard, it risks worse defrag issues and missing memory seggs.
+	    while(true){
+		    let d = mem[i]-size;
+		    if((d+1) > 0){ //First fit
+			    if(d > 1){ //Left can become list part
+				    let p = i+1+size;
+					let mem[p] = d-1;
+					let mem[p+1] = mem[i+1];
+					let mem[i] = size;
+					//v updating last segment's next. 
+					if(l > 0){
+					    let mem[l] = p;
+				    }else{
+					    let base = p;
+				    }
+				}else{
+					if(l > 0){
+					    let mem[l] = mem[i+1];
+				    }else{
+					    let base = mem[i+1];
+				    }
+					//let mem[i] = size+d; this literally i am so stupid
+				}
+				//let jDf = false; only undo this flag when dealloc.
+			    return i+1;
+		    }else{
+			    let i = i+1;
+			    let l = i;
+			    if(mem[i] = null){
+				    if(jDf){
+					    do Sys.error(2);
+				    }else{
+					    do Memory.deFrag();
+					    return Memory.alloc(size);
+				    }
+			    }else{
+				    let i = mem[i];
+			    }
+		    }
+	    } //while
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+    function void deAlloc(Array o) {
+	    //let's defrag every n iterations.
+	    //defrag is just much easier when done every dealloc due to having to find the one that points to it (which is alr ordered due to how alloc works), having the next one just right there...
+	    var int i,l;
+	    let o = o-1;
+	    let i = base;
+	    let l = null;
+	    while(true){
+		    if(i > o){
+			    if(l = null){
+				    let base = o;
+				    let mem[o+1] = i;
+				}else{
+					let mem[l] = o;
+					let mem[o+1] = i;
+				}
+				//defrag time
+				if(dff = 1){
+					let jDf = true;
+					if(i = (o+mem[o]+1)){
+						let mem[o] = mem[o]+mem[i]+1;
+						let mem[o+1] = mem[i+1];
+					}
+				}else{
+					if(dfi = dff){
+						let dfi = 1;
+						do Memory.deFrag();
+					}else{
+						let dfi = dfi+1;
+						let jDf = false;
+					}
+				}
+			    return;
+		    }else{
+			    let l = i+1;
+			    let i = mem[l];
+			    if(i = null){
+				    let mem[l] = o;
+				    let mem[o+1] = null;
+				    return;
+			    }
+		    }
+	    }
+    }
+    
+    function void deFrag(){
+	    var int i,l;
+	    let i = base+1;
+	    let l = null;
+	    while(true){
+		    if(mem[i] = null){
+			    return;
+		    }else{
+			    if(l > 0){
+				    if(i = (l+mem[l-1]+1)){
+					   let mem[l-1] = mem[l-1]+mem[i-1]+1;
+					   let mem[l] = mem[i];
+				    }
+			    }
+			    let l = i;
+			    let i = mem[i]+1;
+		    }
+	    }
+    }
+    
+    function void setFreq(int n){
+	    if(n > 1){
+		    let dfi = 1;
+		    let dff = n;
+	    }
+	    return;
+    }
+}
